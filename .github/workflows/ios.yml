@@ -12,7 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app_dir: [ "iosApp", "iosNativeApp" ]
+        include:
+          - project: iosApp/iosApp.xcodeproj
+            scheme: MyApp
+          - project: iosNativeApp/GhibliXApp.xcodeproj
+            scheme: MyNativeApp
     env:
       CONFIGURATION: Debug
       SDK: iphonesimulator
