@@ -1,0 +1,11 @@
+<resources>
+    <string name="home_subtitle">What do you want to watch?</string>
+
+    <string name="movie_not_found_title">We are sorry, we can not find the movie :(</string>
+    <string name="movie_not_found_subtitle">Find your movie by Type title, categories, years, etc.</string>
+
+    <string name="watchlist_title">Watch list</string>
+    <string name="watchlist_no_movie_title">There is no movie yet!</string>
+    <string name="watchlist_no_movie_subtitle">Find your movie by Type title, categories, years, etc.</string>
+
+</resources>
