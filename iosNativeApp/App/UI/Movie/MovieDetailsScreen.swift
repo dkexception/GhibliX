@@ -8,45 +8,76 @@
 import SwiftUI
 import SharedKit
 
+extension Film {
+    var ratingOutOfTen: String {
+        String(format: "%.1f", Double(self.rating) / 10.0)
+    }
+}
+
 // MARK: - Screen
 struct MovieDetailsScreen: View {
     
     enum Tab { case about, cast }
     
-    let film: Film
+    let filmId: String
     
     @Environment(\.dismiss) private var dismiss
     @State private var tab: Tab = .about
     
-    private var ratingOutOfTen: String {
-        String(format: "%.1f", Double(film.rating) / 10.0)
-    }
+    @StateObject var viewModelStoreOwner = IOSViewModelStoreOwner()
+    
+    @EnvironmentObject var appContainer: ObservableValueWrapper<AppContainer>
     
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                headerHero
-                contentCard
+        
+        let movieViewModel: MovieViewModel =
+        viewModelStoreOwner.viewModel(
+            key: "movie_\(filmId)",
+            factory: appContainer.value.movieViewModelFactory,
+            extras: creationExtras { extras in
+                extras.set(
+                    key: MovieViewModel.companion.FILM_ID_KEY,
+                    t: filmId
+                )
             }
-        }
-        .background(Color(.systemBackground))
-        .navigationTitle(film.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    // hook up to favorites later
-                } label: {
-                    Image(systemName: "bookmark")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.primary)
+        )
+        
+        Observing(movieViewModel.state) { movieState in
+            
+            if let film = movieState.film {
+                
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        headerHero(film)
+                        contentCard(film)
+                    }
                 }
+                .background(Color(.systemBackground))
+                .navigationTitle(movieState.film?.title ?? "")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            movieViewModel.onEvent(movieEvent: MovieEvent.WatchlistToggle())
+                        } label: {
+                            Image(
+                                systemName: movieState.isWatchlisted ? "bookmark.fill" : "bookmark"
+                            )
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        }
+                    }
+                }
+                
+            } else {
+                ProgressView()
             }
         }
     }
     
     // MARK: - Header (Backdrop with gradient)
-    private var headerHero: some View {
+    @ViewBuilder
+    private func headerHero(_ film: Film) -> some View {
         ZStack(alignment: .bottomLeading) {
             AsyncImage(url: URL(string: film.bannerUrl)) { phase in
                 switch phase {
@@ -73,9 +104,9 @@ struct MovieDetailsScreen: View {
             HStack(alignment: .bottom, spacing: 16) {
                 Spacer()
                     .frame(width: 1)
-                posterThumb
+                posterThumb(film)
                 Spacer()
-                ratingBadge
+                ratingBadge(film)
                     .padding(.trailing, 16)
             }
             .padding(.leading, 16)
@@ -83,7 +114,8 @@ struct MovieDetailsScreen: View {
         }
     }
     
-    private var posterThumb: some View {
+    @ViewBuilder
+    private func posterThumb(_ film: Film) -> some View {
         AsyncImage(url: URL(string: film.image)) { phase in
             switch phase {
             case .success(let img): img.resizable().scaledToFill()
@@ -101,10 +133,11 @@ struct MovieDetailsScreen: View {
         .shadow(radius: 8, y: 6)
     }
     
-    private var ratingBadge: some View {
+    @ViewBuilder
+    private func ratingBadge(_ film: Film) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "star.fill")
-            Text(ratingOutOfTen)
+            Text(film.ratingOutOfTen)
                 .font(.headline.bold())
         }
         .foregroundStyle(Color.orange)
@@ -114,7 +147,8 @@ struct MovieDetailsScreen: View {
     }
     
     // MARK: - Main content card
-    private var contentCard: some View {
+    @ViewBuilder
+    private func contentCard(_ film: Film) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             // Title
             Text(film.title)
@@ -212,28 +246,14 @@ private struct SegmentedTabs: View {
 }
 
 // MARK: - Preview
-
 #Preview {
     NavigationStack {
         MovieDetailsScreen(
-            film: Film(
-                id: "58611129-2dbc-4a81-a72f-77ddfc1b1b49",
-                title: "My Neighbor Totoro",
-                originalTitle: "となりのトトロ",
-                originalTitleRomanised: "Tonari no Totoro",
-                description: "Two sisters move to the country with their father and discover magical forest spirits called Totoros...",
-                director: "Hayao Miyazaki",
-                producer: "Hayao Miyazaki",
-                releaseYear: "1988",
-                rating: 93,
-                runningTimeMinutes: 86,
-                image: "https://image.tmdb.org/t/p/w600_and_h900_bestv2/rtGDOeG9LzoerkDGZF9dnVeLppL.jpg",
-                bannerUrl: "https://image.tmdb.org/t/p/original/etqr6fOOCXQOgwrQXaKwenTSuzx.jpg",
-                url: "https://ghibliapi.vercel.app/films/58611129-2dbc-4a81-a72f-77ddfc1b1b49",
-                locations: ["https://ghibliapi.vercel.app/locations/"],
-                people: ["https://ghibliapi.vercel.app/people/986faac6-67e3-4fb8-a9ee-bad077c2e7fe"],
-                species: ["https://ghibliapi.vercel.app/species/af3910a6-429f-4c74-9ad5-dfe1c4aa04f2"],
-                vehicles: ["https://ghibliapi.vercel.app/vehicles/"]
+            filmId: "58611129-2dbc-4a81-a72f-77ddfc1b1b49"
+        )
+        .environmentObject(
+            ObservableValueWrapper<AppContainer>(
+                value: AppContainer()
             )
         )
     }

@@ -31,7 +31,9 @@ class AppContainer : KoinComponent {
 
     val watchlistViewModelFactory = viewModelFactory {
         initializer {
-            WatchlistViewModel()
+            WatchlistViewModel(
+                repository = repository
+            )
         }
     }
 }

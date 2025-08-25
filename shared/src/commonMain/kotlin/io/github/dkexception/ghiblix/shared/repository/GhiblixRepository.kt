@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 private const val MOVIES_DATA_KEY = "movies_data_key"
+private const val WATCHLIST_MOVIES_IDS_KEY = "watchlist_movies_ids_key"
 
 class GhiblixRepository(
     private val api: GhiblixApi,
@@ -76,5 +77,67 @@ class GhiblixRepository(
         getCachedFilms()?.find { it.id == filmId }
     } catch (_: Exception) {
         null
+    }
+
+    suspend fun isFilmWatchlisted(filmId: String): Boolean = try {
+
+        val existingWatchlistedFilmIdsString: String = datastore.getString(
+            key = WATCHLIST_MOVIES_IDS_KEY
+        ).takeUnless(String::isBlank) ?: return false
+
+        json.decodeFromString<List<String>>(
+            existingWatchlistedFilmIdsString
+        ).any { it.equals(filmId, true) }
+
+    } catch (_: Exception) {
+        false
+    }
+
+    suspend fun markFilmWatchlisted(filmId: String) = try {
+
+        val existingWatchlistedFilmIds: List<String> = datastore.getString(
+            key = WATCHLIST_MOVIES_IDS_KEY
+        ).takeUnless(String::isBlank)?.let {
+            json.decodeFromString<List<String>>(it)
+        }.orEmpty()
+
+        val listToPersist: List<String> = existingWatchlistedFilmIds
+            .toMutableList()
+            .apply {
+                add(filmId)
+                toList()
+            }
+
+        datastore.setString(
+            key = WATCHLIST_MOVIES_IDS_KEY,
+            value = json.encodeToString<List<String>>(listToPersist)
+        )
+
+    } catch (_: Exception) {
+        // do nothing
+    }
+
+    suspend fun removeFilmWatchlisted(filmId: String) = try {
+
+        val existingWatchlistedFilmIds: List<String> = datastore.getString(
+            key = WATCHLIST_MOVIES_IDS_KEY
+        ).takeUnless(String::isBlank)?.let {
+            json.decodeFromString<List<String>>(it)
+        }.orEmpty()
+
+        val listToPersist: List<String> = existingWatchlistedFilmIds
+            .toMutableList()
+            .apply {
+                remove(filmId)
+                toList()
+            }
+
+        datastore.setString(
+            key = WATCHLIST_MOVIES_IDS_KEY,
+            value = json.encodeToString<List<String>>(listToPersist)
+        )
+
+    } catch (_: Exception) {
+        // do nothing
     }
 }

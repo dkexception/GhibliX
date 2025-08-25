@@ -48,7 +48,7 @@ struct HomeScreen: View {
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(homeUIState.films, id: \.self.id) { film in
                             NavigationLink {
-                                MovieDetailsScreen(film: film)
+                                MovieDetailsScreen(filmId: film.id)
                             } label: {
                                 FilmGridItem(film: film)
                             }
